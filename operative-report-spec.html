@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Operative Report from Surgical Video — Specification</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FBFBFA; --surface:#FFFFFF;
+    --ink:#16201C; --muted:#566660; --faint:#8B958F;
+    --line:#E6EAE6; --line-soft:#EEF1EE;
+    --accent:#0F6E56; --accent-deep:#0A4D3D; --accent-soft:#E4F3EC; --accent-tint:#F2F9F5;
+    --alert:#9C3B33; --alert-soft:#F8ECEA;
+    --sans:"Hanken Grotesk",-apple-system,system-ui,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,monospace;
+    --col:760px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--sans); font-size:17px; line-height:1.68;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  }
+  ::selection{background:var(--accent-soft)}
+
+  /* scroll progress */
+  #progress{position:fixed; top:0; left:0; height:2px; width:0; background:var(--accent); z-index:60}
+
+  /* top bar */
+  .topbar{
+    position:sticky; top:0; z-index:50; height:54px;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 24px; border-bottom:1px solid var(--line);
+    background:rgba(251,251,250,.82); backdrop-filter:saturate(140%) blur(8px);
+  }
+  .topbar .brand{font-family:var(--mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink)}
+  .topbar .brand b{color:var(--accent); font-weight:500}
+  .topbar .tag{font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--faint)}
+
+  /* layout */
+  .wrap{
+    max-width:1180px; margin:0 auto; padding:0 24px;
+    display:grid; grid-template-columns:200px minmax(0,var(--col)); gap:72px; justify-content:center;
+  }
+  nav.rail{
+    position:sticky; top:90px; align-self:start; height:max-content;
+    padding-top:8px; font-family:var(--mono); font-size:12px; line-height:1.5;
+  }
+  nav.rail .rl{font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin:0 0 14px}
+  nav.rail a{
+    display:flex; gap:10px; padding:5px 0; color:var(--muted); text-decoration:none;
+    border-left:2px solid transparent; padding-left:12px; margin-left:-14px; transition:color .15s, border-color .15s;
+  }
+  nav.rail a .n{color:var(--faint); min-width:18px}
+  nav.rail a:hover{color:var(--ink)}
+  nav.rail a.active{color:var(--accent-deep); border-left-color:var(--accent)}
+  nav.rail a.active .n{color:var(--accent)}
+
+  main{min-width:0; padding-bottom:120px}
+
+  /* hero */
+  .hero{padding:72px 0 26px; border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--accent); margin:0 0 20px}
+  .hero h1{font-size:clamp(2.1rem,4.6vw,3.15rem); line-height:1.06; font-weight:600; letter-spacing:-.018em; margin:0 0 22px; max-width:14ch}
+  .hero .lede{font-size:1.22rem; line-height:1.55; color:var(--muted); margin:0 0 30px; max-width:54ch}
+  .hero .lede b{color:var(--ink); font-weight:600}
+  .meta{display:flex; flex-wrap:wrap; gap:8px 18px; font-family:var(--mono); font-size:11.5px; letter-spacing:.06em; color:var(--faint); text-transform:uppercase}
+  .meta span{display:inline-flex; align-items:center}
+  .meta span::before{content:""; width:5px; height:5px; border-radius:50%; background:var(--accent); margin-right:9px}
+  .ecg{display:block; width:100%; height:26px; margin-top:34px; overflow:visible}
+  .ecg path{fill:none; stroke:var(--accent); stroke-width:1.4; opacity:.85}
+  @media (prefers-reduced-motion:no-preference){
+    .ecg path{stroke-dasharray:1; stroke-dashoffset:1; animation:draw 1.6s .25s ease forwards}
+  }
+  @keyframes draw{to{stroke-dashoffset:0}}
+
+  /* sections */
+  .sec{padding:54px 0; border-bottom:1px solid var(--line-soft)}
+  .sec:last-of-type{border-bottom:none}
+  .sec-head{display:flex; align-items:baseline; gap:16px; margin:0 0 22px}
+  .sec-head .kick{font-family:var(--mono); font-size:13px; color:var(--accent); font-weight:500; padding-top:2px}
+  .sec-head h2{font-size:1.62rem; font-weight:600; letter-spacing:-.012em; line-height:1.2; margin:0}
+  .sec-head h2 small{display:block; font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); font-weight:400; margin-top:7px}
+
+  p{margin:0 0 16px}
+  .sec p, .sec li{color:#2C3531}
+  strong{font-weight:600; color:var(--ink)}
+  em{font-style:italic}
+  a{color:var(--accent); text-decoration:none; border-bottom:1px solid var(--accent-soft); transition:border-color .15s}
+  a:hover{border-bottom-color:var(--accent)}
+
+  ul{margin:0 0 16px; padding:0; list-style:none}
+  ul li{position:relative; padding-left:22px; margin:0 0 9px}
+  ul li::before{content:""; position:absolute; left:2px; top:.66em; width:7px; height:1.5px; background:var(--accent)}
+
+  .lbl{font-weight:600; color:var(--ink)}
+
+  .subhead{font-family:var(--mono); font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin:26px 0 12px}
+
+  /* two-column blocks */
+  .split{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:18px 0}
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:18px 20px}
+  .card h4{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; margin:0 0 12px; color:var(--accent-deep)}
+  .card.cons h4{color:var(--alert)}
+  .card ul li{margin-bottom:7px; font-size:15.5px; line-height:1.5}
+
+  /* tables */
+  .tablewrap{overflow-x:auto; margin:18px 0; border:1px solid var(--line); border-radius:12px}
+  table{width:100%; border-collapse:collapse; font-size:15px}
+  th{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); font-weight:500;
+     text-align:left; padding:13px 16px; border-bottom:1px solid var(--accent-soft); background:var(--accent-tint); white-space:nowrap}
+  td{padding:12px 16px; border-bottom:1px solid var(--line-soft); vertical-align:top; color:#2C3531}
+  tr:last-child td{border-bottom:none}
+  td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+
+  /* code */
+  .codeblock{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:18px 20px; margin:16px 0; overflow-x:auto}
+  pre{margin:0; font-family:var(--mono); font-size:13px; line-height:1.6; color:#2C3531}
+  code{font-family:var(--mono)}
+  .k{color:var(--accent-deep)} .v{color:var(--alert)} .num{color:#9A6B12}
+
+  /* diagram */
+  .diagram{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:24px; margin:20px 0; text-align:center}
+  .diagram .mermaid{font-family:var(--mono)!important}
+  .caption{font-family:var(--mono); font-size:11px; letter-spacing:.06em; color:var(--faint); margin-top:6px; text-align:center}
+
+  /* phases */
+  .phase{padding:24px 0; border-top:1px solid var(--line-soft)}
+  .phase:first-of-type{border-top:none; padding-top:6px}
+  .phase .ptag{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin:0 0 4px}
+  .phase h3{font-size:1.12rem; font-weight:600; margin:0 0 8px}
+  .phase .pdesc{color:var(--muted); font-size:15.5px; margin:0 0 14px}
+  .hyp{background:var(--accent-tint); border:1px solid var(--accent-soft); border-left:3px solid var(--accent);
+       border-radius:8px; padding:13px 16px; margin:9px 0; font-size:15px; line-height:1.55}
+  .hyp .htag{display:block; font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent-deep); margin-bottom:5px}
+  .test{font-size:14.5px; color:var(--muted); margin:9px 0 0; line-height:1.55}
+  .test .ttag{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); margin-right:7px}
+  .kill{display:inline-block; margin-top:8px; font-size:14px; color:#5b3733}
+  .kill .ktag{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--alert);
+       background:var(--alert-soft); padding:2px 7px; border-radius:5px; margin-right:8px}
+
+  /* callout */
+  .callout{background:var(--accent-tint); border:1px solid var(--accent-soft); border-radius:12px; padding:18px 20px; margin:20px 0}
+  .callout .htag{display:block; font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent-deep); margin-bottom:8px}
+
+  .intro{color:var(--muted); font-size:15.5px; border-left:2px solid var(--line); padding-left:16px; margin:0 0 24px}
+
+  /* footer */
+  footer{border-top:1px solid var(--line); padding:34px 0 60px; font-family:var(--mono); font-size:12px; color:var(--faint); line-height:1.7}
+  footer b{color:var(--muted); font-weight:500}
+
+  @media (max-width:1080px){
+    .wrap{grid-template-columns:minmax(0,var(--col)); gap:0}
+    nav.rail{display:none}
+  }
+  @media (max-width:560px){
+    body{font-size:16px}
+    .split{grid-template-columns:1fr}
+    .sec-head{flex-direction:column; gap:6px}
+    .hero{padding-top:48px}
+  }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<header class="topbar">
+  <div class="brand">Op-Report <b>/ video</b></div>
+  <div class="tag">Project specification · v1</div>
+</header>
+
+<div class="wrap">
+  <nav class="rail" aria-label="Sections">
+    <p class="rl">Contents</p>
+    <a href="#summary"><span class="n">01</span> Summary</a>
+    <a href="#scope"><span class="n">02</span> Problem &amp; scope</a>
+    <a href="#goals"><span class="n">03</span> Goals</a>
+    <a href="#decisions"><span class="n">04</span> Design decisions</a>
+    <a href="#data"><span class="n">05</span> Data plan</a>
+    <a href="#model"><span class="n">06</span> Data model</a>
+    <a href="#eval"><span class="n">07</span> Evaluation</a>
+    <a href="#roadmap"><span class="n">08</span> Roadmap</a>
+    <a href="#archa"><span class="n">09</span> Architecture A</a>
+    <a href="#archb"><span class="n">10</span> Architecture B</a>
+    <a href="#choose"><span class="n">11</span> Choosing</a>
+    <a href="#risks"><span class="n">12</span> Risks</a>
+    <a href="#refs"><span class="n">13</span> References</a>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <p class="eyebrow">Project specification</p>
+      <h1>Operative reports from surgical video</h1>
+      <p class="lede">Turn endoscopic video into a structured <b>draft operative report</b> a surgeon reviews, completes, and signs. Video is the only required input.</p>
+      <div class="meta">
+        <span>Vision-only</span>
+        <span>Draft + sign-off</span>
+        <span>First procedure: lap. chole</span>
+      </div>
+      <svg class="ecg" viewBox="0 0 600 26" preserveAspectRatio="none" aria-hidden="true">
+        <path pathLength="1" d="M0 13 H230 L242 13 L250 4 L260 22 L268 13 L284 13 L292 9 L300 13 H600"/>
+      </svg>
+    </section>
+
+    <section class="sec" id="summary">
+      <div class="sec-head"><span class="kick">01</span><h2>Summary</h2></div>
+      <p>A system that ingests endoscopic video from a surgical procedure (robotic or laparoscopic) and produces a structured <strong>draft operative report</strong> describing what was done and what was found. The video is the only required input. The output is a draft that a surgeon reviews, completes, and signs — not an autonomous final document.</p>
+      <p>The technical core is a two-step idea: first recognize <em>what is happening</em> in the video as a stream of discrete, time-stamped events (surgical phases and action triplets); then turn that structured event stream into operative-report prose.</p>
+    </section>
+
+    <section class="sec" id="scope">
+      <div class="sec-head"><span class="kick">02</span><h2>Problem and scope</h2></div>
+      <p>Surgeons spend meaningful time dictating or writing operative notes after each case. Much of the content of those notes describes observable intraoperative activity — the steps performed, instruments used, structures handled, and findings — which is exactly what a model watching the video could reconstruct. Automating the <em>draft</em> reduces documentation burden while keeping the surgeon as the accountable author.</p>
+      <div class="split">
+        <div class="card"><h4>In scope · v1</h4><p style="margin:0;font-size:15.5px;color:#2C3531">The technique and findings narrative — the parts of the report that are visible in the operative field.</p></div>
+        <div class="card cons"><h4>Out of scope · v1</h4><p style="margin:0;font-size:15.5px;color:#2C3531">Fields not derivable from video: identifiers, indication, consent, blood loss, specimen disposition, instrument/sponge counts. Left as templated placeholders for the surgeon.</p></div>
+      </div>
+    </section>
+
+    <section class="sec" id="goals">
+      <div class="sec-head"><span class="kick">03</span><h2>Goals and non-goals</h2></div>
+      <p class="subhead">Goals</p>
+      <ul>
+        <li>Generate a faithful, structured draft of the technique/findings sections from video alone.</li>
+        <li>Be vendor- and modality-agnostic: run on any endoscopic video, robotic or laparoscopic, any camera.</li>
+        <li>Keep every stage inspectable so errors can be traced to a specific component.</li>
+        <li>Keep the surgeon in the loop as the final author.</li>
+      </ul>
+      <p class="subhead">Non-goals</p>
+      <ul>
+        <li>No autonomous, unsupervised report finalization.</li>
+        <li>No dependency on proprietary robot telemetry (e.g. da Vinci kinematic logs) in v1. Kinematics is a later accuracy upgrade, not a requirement.</li>
+        <li>No claim to fill fields that are not observable in the video.</li>
+      </ul>
+    </section>
+
+    <section class="sec" id="decisions">
+      <div class="sec-head"><span class="kick">04</span><h2>Key design decisions</h2></div>
+      <ul>
+        <li><span class="lbl">Vision-first.</span> Runs on video, which generalizes across robots, vendors, and laparoscopic cases, and avoids dependence on vendor-gated kinematic streams.</li>
+        <li><span class="lbl">Draft, not final.</span> The deliverable requires surgeon sign-off — both a safety requirement (hallucinated operative detail is a real harm) and a regulatory simplification.</li>
+        <li><span class="lbl">One procedure first.</span> Build and validate end-to-end on a single data-rich procedure (laparoscopic cholecystectomy) before generalizing. Robotic prostatectomy second.</li>
+        <li><span class="lbl">Structured intermediate representation.</span> A machine-readable event timeline sits between perception and language — the contract between the two halves, the thing you validate, and the thing a surgeon can audit.</li>
+      </ul>
+    </section>
+
+    <section class="sec" id="data">
+      <div class="sec-head"><span class="kick">05</span><h2>Data plan</h2></div>
+      <p class="subhead">5.1 — Public datasets (prototyping &amp; benchmarking)</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Dataset</th><th>Procedure</th><th>Real?</th><th>Key labels</th><th>Access</th></tr></thead>
+          <tbody>
+            <tr><td>Cholec80</td><td>Lap. cholecystectomy</td><td>Yes</td><td>Phases, tool presence</td><td>Request form (CAMMA)</td></tr>
+            <tr><td>CholecT50 / T45</td><td>Lap. cholecystectomy</td><td>Yes</td><td>Triplets ⟨instrument, verb, target⟩ + phases</td><td>Request form (CAMMA)</td></tr>
+            <tr><td>CholecSeg8k</td><td>Lap. cholecystectomy</td><td>Yes</td><td>Segmentation masks</td><td>Kaggle</td></tr>
+            <tr><td>SAR-RARP50</td><td>Robotic radical prostatectomy</td><td>Yes (in-vivo, da Vinci Si)</td><td>Action recognition + instrument seg.</td><td>Open (UCL Figshare)</td></tr>
+            <tr><td>JIGSAWS</td><td>Bench-top robotic tasks</td><td>No (dry lab)</td><td>Gestures, skill, (kinematics)</td><td>Open (JHU CIRL)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li>CAMMA datasets — <a href="https://camma.unistra.fr/datasets/">camma.unistra.fr/datasets</a></li>
+        <li>CholecT50 — <a href="https://github.com/CAMMA-public/cholect50">github.com/CAMMA-public/cholect50</a></li>
+        <li>Cholec80 handling — <a href="https://github.com/CAMMA-public/TF-Cholec80">github.com/CAMMA-public/TF-Cholec80</a></li>
+        <li>SAR-RARP50 — <a href="https://rdr.ucl.ac.uk/projects/SAR-RARP50_Segmentation_of_surgical_instrumentation_and_Action_Recognition_on_Robot-Assisted_Radical_Prostatectomy_Challenge/191091">UCL Figshare project page</a></li>
+        <li>JIGSAWS — <a href="https://cirl.lcsr.jhu.edu/research/hmm/datasets/jigsaws_release/">cirl.lcsr.jhu.edu · JIGSAWS release</a></li>
+      </ul>
+      <p style="font-size:15.5px;color:var(--muted)">Larger/newer corpora to track as the project scales: Surg-3M (arXiv 2503.19740), HSA-27k / Halsted Surgical Atlas subset (arXiv 2603.22583), SurgPub-Video (arXiv 2508.10054).</p>
+      <p class="subhead">5.2 — The data that does not exist publicly</p>
+      <p>Paired <em>(video → real operative report)</em> data is the true bottleneck. Public datasets give labels for perception but not the target narrative. The acquisition strategy doubles as customer development: partner with one or two surgeons or a single department who already record endoscope video and write op notes per case. A few hundred cases of <em>one</em> procedure, de-identified and paired with the real report, beats any scraped corpus and becomes a defensible data asset.</p>
+      <p class="subhead">5.3 — Governance</p>
+      <p>Surgical video is protected health information. Build for de-identification, IRB/ethics approval, and a signed data-use agreement (BAA) from day one. The public research datasets above carry research-use licenses — fine for prototyping and publication, but verify terms before shipping anything commercial.</p>
+    </section>
+
+    <section class="sec" id="model">
+      <div class="sec-head"><span class="kick">06</span><h2>Core data model</h2></div>
+      <p>The structured timeline is the heart of the system. Each event is a time-stamped, typed record. The <strong>action triplet</strong> ⟨instrument, verb, target⟩ is the atomic unit — essentially a sentence of the operative note in structured form.</p>
+      <div class="codeblock"><pre><span class="k">{</span>
+  <span class="k">"t_start"</span>: <span class="num">1423.5</span>,
+  <span class="k">"t_end"</span>: <span class="num">1457.2</span>,
+  <span class="k">"phase"</span>: <span class="v">"calot_triangle_dissection"</span>,
+  <span class="k">"triplet"</span>: {
+    <span class="k">"instrument"</span>: <span class="v">"hook"</span>,
+    <span class="k">"verb"</span>: <span class="v">"dissect"</span>,
+    <span class="k">"target"</span>: <span class="v">"cystic_artery"</span>
+  },
+  <span class="k">"confidence"</span>: <span class="num">0.91</span>
+<span class="k">}</span></pre></div>
+      <p>A procedure becomes an ordered list of such events plus phase boundaries. The report generator consumes this list, not the raw video.</p>
+    </section>
+
+    <section class="sec" id="eval">
+      <div class="sec-head"><span class="kick">07</span><h2>Evaluation and success criteria</h2></div>
+      <ul>
+        <li><span class="lbl">Perception layer.</span> Standard metrics on public benchmarks — phase accuracy and Jaccard, triplet mAP, tool/segmentation scores.</li>
+        <li><span class="lbl">Report quality.</span> Automatic text metrics (ROUGE, BERTScore) against held-out real op notes are weak. The primary metric is <strong>blinded surgeon review</strong> scoring drafts on factual accuracy, completeness, hallucination rate, and edit distance to a sign-off-ready note.</li>
+        <li><span class="lbl">Top-line success.</span> A surgeon spends meaningfully less time producing a final note from the draft than writing from scratch, with no factual errors surviving to sign-off.</li>
+      </ul>
+    </section>
+
+    <section class="sec" id="roadmap">
+      <div class="sec-head"><span class="kick">08</span><h2>Roadmap<small>Each phase gated by a falsifiable hypothesis</small></h2></div>
+      <p class="intro">A phase is not done when the work is built — it is done when its hypothesis is confirmed. A refuted hypothesis is a signal to pivot or stop, not to push harder. Each phase tests the assumption that, if false, would invalidate the phases after it.</p>
+
+      <div class="phase">
+        <p class="ptag">Phase 0 · Scoping</p>
+        <h3>Lock procedure, template, schema, data &amp; partner</h3>
+        <p class="pdesc">Choose the target procedure (lap. cholecystectomy), report template, and event schema. Secure dataset access and a design-partner surgeon.</p>
+        <div class="hyp"><span class="htag">Hypothesis</span>The technique/findings content of a real operative note can be expressed as a sequence of observable phases and action triplets — the report is reconstructible from what the camera sees.</div>
+        <p class="test"><span class="ttag">Test</span>Have a surgeon map each technique/findings sentence of sample op notes to phase/triplet events; measure the fraction grounded in observable events vs. non-visual knowledge.</p>
+        <span class="kill"><span class="ktag">Kill</span>If much of the narrative depends on non-visual knowledge, the video-only premise is wrong.</span>
+      </div>
+
+      <div class="phase">
+        <p class="ptag">Phase 1 · Perception</p>
+        <h3>Phase &amp; triplet recognition on a frozen backbone</h3>
+        <p class="pdesc">Fine-tune lightweight heads on a frozen surgical video backbone using Cholec80 + CholecT50.</p>
+        <div class="hyp"><span class="htag">Hypothesis</span>A frozen pretrained surgical backbone plus lightweight heads reaches usable phase and triplet accuracy — no pretraining or end-to-end training from scratch needed.</div>
+        <p class="test"><span class="ttag">Test</span>Benchmark against published SOTA on Cholec80/CholecT50 with a pre-registered "usable" threshold.</p>
+        <span class="kill"><span class="ktag">Kill</span>If frozen-backbone probing lands far below threshold, the cheap-transfer assumption fails and cost/scope change materially.</span>
+      </div>
+
+      <div class="phase">
+        <p class="ptag">Phase 2 · Timeline</p>
+        <h3>De-noise predictions into an event list</h3>
+        <p class="pdesc">Convert per-frame predictions into a clean, time-stamped event list via smoothing, segment merging, and confidence thresholds.</p>
+        <div class="hyp"><span class="htag">Hypothesis</span>Noisy per-frame predictions can be post-processed into a timeline accurate enough that downstream report errors are dominated by <em>perception</em>, not by timeline construction.</div>
+        <p class="test"><span class="ttag">Test</span>Compare constructed timelines against ground-truth annotations (boundary precision/recall) and attribute downstream errors to perception vs. timeline-building.</p>
+        <span class="kill"><span class="ktag">Kill</span>If timeline construction is a large independent error source, the clean intermediate-representation assumption is weaker than designed.</span>
+      </div>
+
+      <div class="phase">
+        <p class="ptag">Phase 3 · Report generation</p>
+        <h3>Constrained LLM: timeline → prose</h3>
+        <p class="pdesc">Build a template-constrained LLM stage mapping the timeline to technique/findings prose, forbidding claims not grounded in events.</p>
+        <div class="hyp"><span class="htag">Hypothesis</span>Given an <em>accurate</em> timeline, a constrained LLM produces prose surgeons rate as faithful and near sign-off ready, with effectively zero ungrounded claims.</div>
+        <p class="test"><span class="ttag">Test</span>Feed ground-truth ("oracle") timelines to the generator and have surgeons rate faithfulness, completeness, and hallucination — isolating the language stage from perception error.</p>
+        <span class="kill"><span class="ktag">Kill</span>If even oracle input yields hallucinations or unusable prose, generation (not perception) is the blocker.</span>
+      </div>
+
+      <div class="phase">
+        <p class="ptag">Phase 4 · Validation</p>
+        <h3>Blinded review of the full pipeline</h3>
+        <p class="pdesc">Blinded surgeon review of the full (non-oracle) pipeline against real op notes.</p>
+        <div class="hyp"><span class="htag">Hypothesis</span>With the real end-to-end pipeline, a surgeon produces a final note from the draft in meaningfully less time than from scratch, with no factual error surviving to sign-off.</div>
+        <p class="test"><span class="ttag">Test</span>Timed within-surgeon comparison (draft-assisted vs. scratch) plus a factual-error audit of signed notes.</p>
+        <span class="kill"><span class="ktag">Kill</span>No net time saving, or errors reaching sign-off, means the value proposition is unproven.</span>
+      </div>
+
+      <div class="phase">
+        <p class="ptag">Phase 5 · Robotic + paired data</p>
+        <h3>Port to SAR-RARP50; start collecting pairs</h3>
+        <p class="pdesc">Port the pipeline to robotic prostatectomy; begin collecting paired video↔report data from the design partner.</p>
+        <div class="hyp"><span class="htag">Hypothesis A · transfer</span>The architecture ports to a robotic procedure with retraining but no redesign — the approach is procedure-general, not lap-chole-specific.</div>
+        <div class="hyp"><span class="htag">Hypothesis B · acquisition</span>Design-partner surgeons reliably supply de-identified paired video↔report at a usable rate and completeness.</div>
+        <p class="test"><span class="ttag">Test</span>Replicate Phase 1–4 metrics on SAR-RARP50; track paired cases per week and pairing completeness over a pilot.</p>
+        <span class="kill"><span class="ktag">Kill</span>A per-procedure redesign is needed (no generality), or the data pipeline yields too few/incomplete pairs to train on.</span>
+      </div>
+
+      <div class="phase">
+        <p class="ptag">Phase 6 · Advanced</p>
+        <h3>End-to-end VLM, then kinematics</h3>
+        <p class="pdesc">Explore the end-to-end VLM (Architecture B) once paired data exists; later evaluate adding kinematics as a second modality.</p>
+        <div class="hyp"><span class="htag">Hypothesis A · VLM</span>Given the accumulated paired data, an end-to-end VLM beats the modular pipeline on surgeon-rated quality by enough to justify its lower auditability.</div>
+        <div class="hyp"><span class="htag">Hypothesis B · kinematics</span>Adding kinematics improves action recognition or report accuracy enough to justify the data-access cost.</div>
+        <p class="test"><span class="ttag">Test</span>Head-to-head modular vs. VLM on held-out cases; ablation with/without kinematics where both are available.</p>
+        <span class="kill"><span class="ktag">Kill</span>No gain over the modular pipeline (stay modular), or no lift from kinematics (don't pay for the access).</span>
+      </div>
+    </section>
+
+    <section class="sec" id="archa">
+      <div class="sec-head"><span class="kick">09</span><h2>Architecture A — Modular pipeline<small>Recommended for v1</small></h2></div>
+      <p>Perception and language are separate, connected by the structured timeline. This is the lower-risk, more debuggable path and the recommended starting point.</p>
+      <div class="diagram">
+        <pre class="mermaid">
+flowchart TD
+    V["Surgical video<br/>(endoscopic frames)"] --> ENC["Surgical video encoder<br/>(frozen foundation model)"]
+    ENC --> P["Phase recognition"]
+    ENC --> T["Action-triplet recognition<br/>(instrument-verb-target)"]
+    ENC --> TL["Tool detection / tracking"]
+    ENC --> A["Anatomy segmentation"]
+    P --> TS["Structured timeline<br/>(time-stamped events, JSON)"]
+    T --> TS
+    TL --> TS
+    A --> TS
+    TS --> LLM["Report generator<br/>(template-constrained LLM)"]
+    LLM --> R["Draft operative report"]
+    R --> H["Surgeon review + sign-off"]
+        </pre>
+        <div class="caption">Fig. A — perception → structured timeline → constrained generation → sign-off</div>
+      </div>
+      <p class="subhead">Components</p>
+      <ul>
+        <li><span class="lbl">Video encoder.</span> A pretrained surgical video foundation model as a frozen feature extractor (e.g. SurgVISTA, SurgeNetXL, EndoFM).</li>
+        <li><span class="lbl">Perception heads.</span> Lightweight, separately trainable heads for phase, triplet, tool, and anatomy (attentive probing / adapters on the frozen backbone).</li>
+        <li><span class="lbl">Timeline builder.</span> Deterministic post-processing — smoothing, segment merging, confidence gating — producing the event list.</li>
+        <li><span class="lbl">Report generator.</span> An LLM prompted with the event list and template, constrained to ground every statement in an event.</li>
+      </ul>
+      <div class="split">
+        <div class="card"><h4>Pros</h4><ul>
+          <li>Each stage independently testable.</li>
+          <li>Errors traceable to a component.</li>
+          <li>Timeline is clinician-auditable.</li>
+          <li>Lower hallucination risk — describes structured input, not pixels.</li>
+          <li>Smaller data needs; leans on existing labeled sets.</li>
+        </ul></div>
+        <div class="card cons"><h4>Cons</h4><ul>
+          <li>Errors compound across stages.</li>
+          <li>Information outside the schema is lost.</li>
+          <li>More moving parts to build and maintain.</li>
+        </ul></div>
+      </div>
+    </section>
+
+    <section class="sec" id="archb">
+      <div class="sec-head"><span class="kick">10</span><h2>Architecture B — End-to-end VLM</h2></div>
+      <p>A surgical vision-language model maps video directly to report text, with no explicit intermediate representation. This follows recent surgical VLMs (Surgical-LVLM, GP-VLS, Halsted) and the broader "modality-encoder into a frozen LLM" recipe (Flamingo-style cross-attention, as in time-series LMs like OpenTSLM).</p>
+      <div class="diagram">
+        <pre class="mermaid">
+flowchart TD
+    V["Surgical video<br/>(sampled clips)"] --> ENC["Surgical video encoder"]
+    ENC --> ADP["Cross-attention adapter<br/>(Flamingo-style / Q-Former)"]
+    ADP --> LLM["Pretrained LLM<br/>(fine-tuned, e.g. LoRA)"]
+    PR["Report template + prompt"] --> LLM
+    LLM --> R["Draft operative report"]
+    R --> H["Surgeon review + sign-off"]
+        </pre>
+        <div class="caption">Fig. B — video tokens injected into a fine-tuned LLM via a cross-attention adapter</div>
+      </div>
+      <p class="subhead">Components</p>
+      <ul>
+        <li><span class="lbl">Video encoder.</span> Same surgical backbone family as Architecture A, producing visual tokens.</li>
+        <li><span class="lbl">Adapter.</span> A cross-attention module (Flamingo-style) or Q-Former that injects visual tokens into the LLM's attention.</li>
+        <li><span class="lbl">Language model.</span> A pretrained LLM fine-tuned (typically LoRA) to emit the report, conditioned on visual tokens and a template-bearing prompt.</li>
+      </ul>
+      <div class="split">
+        <div class="card"><h4>Pros</h4><ul>
+          <li>No information lost to a fixed schema.</li>
+          <li>Fewer components once trained.</li>
+          <li>Rides advances in general VLMs.</li>
+        </ul></div>
+        <div class="card cons"><h4>Cons</h4><ul>
+          <li>Needs scarce paired video→report data.</li>
+          <li>Harder to validate and constrain; higher hallucination risk.</li>
+          <li>Black box — failures hard to localize or explain.</li>
+          <li>Long procedures stress VLM sequence limits.</li>
+        </ul></div>
+      </div>
+    </section>
+
+    <section class="sec" id="choose">
+      <div class="sec-head"><span class="kick">11</span><h2>Choosing between them</h2></div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Dimension</th><th>A — Modular</th><th>B — End-to-end VLM</th></tr></thead>
+          <tbody>
+            <tr><td>Build risk</td><td>Lower</td><td>Higher</td></tr>
+            <tr><td>Debuggability</td><td>High (per-stage)</td><td>Low (black box)</td></tr>
+            <tr><td>Hallucination control</td><td>Strong (event-grounded)</td><td>Weaker</td></tr>
+            <tr><td>Data needs</td><td>Existing labeled sets</td><td>Scarce paired video↔report</td></tr>
+            <tr><td>Clinical auditability</td><td>High (inspectable timeline)</td><td>Low</td></tr>
+            <tr><td>Quality ceiling</td><td>Capped by the schema</td><td>Potentially higher</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout"><span class="htag">Recommendation</span>Build Architecture A for v1 to reach a validated, auditable product quickly and start accumulating paired data. Treat Architecture B as a Phase-6 research track that becomes viable once paired data exists — the two share the same video encoder, so the investment carries over. A hybrid is natural: use A's structured timeline as grounding context for a VLM, getting the auditability of A with some expressiveness of B.</div>
+    </section>
+
+    <section class="sec" id="risks">
+      <div class="sec-head"><span class="kick">12</span><h2>Key risks</h2></div>
+      <ul>
+        <li><span class="lbl">Compounding perception errors</span> in Architecture A — mitigated by confidence gating and surgeon review.</li>
+        <li><span class="lbl">Hallucinated operative detail</span> — mitigated by event-grounded generation, output constraints, and mandatory sign-off.</li>
+        <li><span class="lbl">Paired-data scarcity</span> — mitigated by the design-partner acquisition strategy.</li>
+        <li><span class="lbl">Regulatory and privacy exposure</span> — mitigated by de-identification, IRB/BAA, and positioning as documentation support with a human author.</li>
+        <li><span class="lbl">Generalization</span> across surgeons, hospitals, and equipment — mitigated by starting narrow and expanding deliberately.</li>
+      </ul>
+    </section>
+
+    <section class="sec" id="refs">
+      <div class="sec-head"><span class="kick">13</span><h2>Reference appendix</h2></div>
+      <ul>
+        <li><span class="lbl">Surgical video backbones:</span> SurgVISTA, SurgeNetXL, EndoFM, SurgMotion.</li>
+        <li><span class="lbl">Surgical VLMs (text output):</span> GP-VLS, Surgical-LVLM, SurgVLM, Halsted.</li>
+        <li><span class="lbl">Perception task line:</span> CholecTriplet challenges (action-triplet recognition), EndoVis challenges (segmentation).</li>
+        <li><span class="lbl">Adapter pattern reference:</span> OpenTSLM (time-series modality into a frozen LLM via soft-prompt or Flamingo-style cross-attention) — directly applicable if/when kinematics is added.</li>
+      </ul>
+    </section>
+
+    <footer>
+      <b>Operative Report from Surgical Video</b> — project specification.<br>
+      Vision-only v1 · draft with mandatory surgeon sign-off · build Architecture A first.
+    </footer>
+  </main>
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad:true,
+    theme:'base',
+    securityLevel:'loose',
+    flowchart:{curve:'basis', padding:14, nodeSpacing:34, rankSpacing:40, useMaxWidth:true},
+    themeVariables:{
+      fontFamily:'"IBM Plex Mono", monospace', fontSize:'12px',
+      primaryColor:'#E4F3EC', primaryBorderColor:'#0F6E56', primaryTextColor:'#16201C',
+      lineColor:'#8B958F', secondaryColor:'#F2F9F5', tertiaryColor:'#FFFFFF'
+    }
+  });
+</script>
+<script>
+  const bar = document.getElementById('progress');
+  const onScroll = () => {
+    const h = document.documentElement;
+    const scrolled = h.scrollTop / (h.scrollHeight - h.clientHeight);
+    bar.style.width = (scrolled * 100) + '%';
+  };
+  document.addEventListener('scroll', onScroll, {passive:true}); onScroll();
+
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const secs = [...document.querySelectorAll('main section[id]')];
+  const links = new Map([...document.querySelectorAll('nav.rail a')].map(a => [a.getAttribute('href').slice(1), a]));
+
+  if(!reduce){
+    secs.forEach(s => { s.style.opacity = 0; s.style.transform = 'translateY(10px)'; s.style.transition = 'opacity .6s ease, transform .6s ease'; });
+  }
+  const revealIO = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if(e.isIntersecting){ e.target.style.opacity = 1; e.target.style.transform = 'none'; revealIO.unobserve(e.target);} });
+  }, {rootMargin:'0px 0px -12% 0px', threshold:.08});
+  secs.forEach(s => revealIO.observe(s));
+
+  const activeIO = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      const a = links.get(e.target.id);
+      if(!a) return;
+      if(e.isIntersecting){ links.forEach(l => l.classList.remove('active')); a.classList.add('active'); }
+    });
+  }, {rootMargin:'-45% 0px -50% 0px', threshold:0});
+  secs.forEach(s => activeIO.observe(s));
+</script>
+</body>
+</html>
