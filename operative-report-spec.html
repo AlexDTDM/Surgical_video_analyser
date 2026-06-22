@@ -186,9 +186,10 @@
     <a href="#roadmap"><span class="n">08</span> Roadmap</a>
     <a href="#archa"><span class="n">09</span> Architecture A</a>
     <a href="#archb"><span class="n">10</span> Architecture B</a>
-    <a href="#choose"><span class="n">11</span> Choosing</a>
-    <a href="#risks"><span class="n">12</span> Risks</a>
-    <a href="#refs"><span class="n">13</span> References</a>
+    <a href="#archc"><span class="n">11</span> Architecture C</a>
+    <a href="#choose"><span class="n">12</span> Choosing</a>
+    <a href="#risks"><span class="n">13</span> Risks</a>
+    <a href="#refs"><span class="n">14</span> References</a>
   </nav>
 
   <main>
@@ -453,26 +454,67 @@ flowchart TD
       </div>
     </section>
 
+    <section class="sec" id="archc">
+      <div class="sec-head"><span class="kick">11</span><h2>Architecture C — Multimodal (video + kinematics)<small>Advanced · Phase 6 endpoint</small></h2></div>
+      <p>The long-term endpoint reintroduces the modality parked in v1: robot kinematics. The da Vinci logs a synchronized stream of instrument motion — endpoint positions, velocities, wrist and grasper angles, clutch and energy events — that is invisible to the camera yet highly informative. This architecture fuses the video path from A/B with a second, time-series path handled by <strong>OpenTSLM</strong>, feeding one shared LLM that grounds the report in both what was <em>seen</em> and what the instruments <em>did</em>.</p>
+      <div class="diagram">
+        <pre class="mermaid">
+flowchart TD
+    V["Surgical video<br/>(frames)"] --> VENC["Surgical video encoder"]
+    K["Robot kinematics<br/>(joint angles, velocity, grasp, energy)"] --> TENC["OpenTSLM<br/>(time-series encoder + adapter)"]
+    VENC --> VT["Visual tokens"]
+    TENC --> KT["Kinematic tokens"]
+    VT --> LLM["Shared fine-tuned LLM"]
+    KT --> LLM
+    PR["Report template + prompt"] --> LLM
+    LLM --> R["Draft report<br/>+ skill / efficiency metrics"]
+    R --> H["Surgeon review + sign-off"]
+        </pre>
+        <div class="caption">Fig. C — video and kinematic token streams fused into one report-generating LLM</div>
+      </div>
+      <p class="subhead">How OpenTSLM is used</p>
+      <p>OpenTSLM's native capability is to integrate time series of any length into a pretrained LLM via a soft-prompt or Flamingo-style cross-attention adapter — exactly the surgical kinematic stream's shape. It encodes the multivariate kinematics into tokens the shared LLM can attend to alongside the visual tokens. Concretely, it earns its place by:</p>
+      <ul>
+        <li><span class="lbl">Disambiguating look-alike actions.</span> Kinematics separates grasp from touch, cautery-on from cautery-off, traction from rest — distinctions that are hard to read from pixels — sharpening triplet and action recognition.</li>
+        <li><span class="lbl">Covering occlusion.</span> When the endoscope view is blocked, smoked out, or withdrawn, the kinematic stream keeps the event timeline continuous.</li>
+        <li><span class="lbl">Adding non-visual content.</span> Instrument economy, path length, idle time, and gesture-level skill metrics are objective measures the camera can't show, enriching both the report and downstream analytics.</li>
+        <li><span class="lbl">Supplying the time-series half off the shelf.</span> This is the Phase-6 "add kinematics" hypothesis made concrete: OpenTSLM (MIT-licensed) provides the encoder/adapter pattern so the kinematic path doesn't have to be built from scratch — typically reusing its adapter design with a larger shared LLM than its stock small backbones.</li>
+      </ul>
+      <div class="split">
+        <div class="card"><h4>Pros</h4><ul>
+          <li>Richest input — resolves visual ambiguity and occlusion.</li>
+          <li>Adds objective skill / efficiency metrics beyond the narrative.</li>
+          <li>Reuses A/B's video encoder; OpenTSLM supplies the time-series half.</li>
+        </ul></div>
+        <div class="card cons"><h4>Cons</h4><ul>
+          <li>Requires gated, synchronized da Vinci kinematic logs — the hardest data to obtain.</li>
+          <li>Most complex to build, train, and align (two encoders + fusion).</li>
+          <li>Multimodal alignment and long-sequence fusion are research-grade.</li>
+        </ul></div>
+      </div>
+      <div class="callout"><span class="htag">When to pursue</span>Only after Architecture A is validated and the Phase-6 ablation shows kinematics earns its access cost. Treat it as an accuracy-and-analytics upgrade layered on the proven pipeline, not a starting point.</div>
+    </section>
+
     <section class="sec" id="choose">
-      <div class="sec-head"><span class="kick">11</span><h2>Choosing between them</h2></div>
+      <div class="sec-head"><span class="kick">12</span><h2>Choosing between them</h2></div>
       <div class="tablewrap">
         <table>
-          <thead><tr><th>Dimension</th><th>A — Modular</th><th>B — End-to-end VLM</th></tr></thead>
+          <thead><tr><th>Dimension</th><th>A — Modular</th><th>B — End-to-end VLM</th><th>C — Multimodal</th></tr></thead>
           <tbody>
-            <tr><td>Build risk</td><td>Lower</td><td>Higher</td></tr>
-            <tr><td>Debuggability</td><td>High (per-stage)</td><td>Low (black box)</td></tr>
-            <tr><td>Hallucination control</td><td>Strong (event-grounded)</td><td>Weaker</td></tr>
-            <tr><td>Data needs</td><td>Existing labeled sets</td><td>Scarce paired video↔report</td></tr>
-            <tr><td>Clinical auditability</td><td>High (inspectable timeline)</td><td>Low</td></tr>
-            <tr><td>Quality ceiling</td><td>Capped by the schema</td><td>Potentially higher</td></tr>
+            <tr><td>Build risk</td><td>Lower</td><td>Higher</td><td>Highest</td></tr>
+            <tr><td>Debuggability</td><td>High (per-stage)</td><td>Low (black box)</td><td>Medium (two encoders)</td></tr>
+            <tr><td>Hallucination control</td><td>Strong (event-grounded)</td><td>Weaker</td><td>Strong (more grounding signals)</td></tr>
+            <tr><td>Data needs</td><td>Existing labeled sets</td><td>Scarce paired video↔report</td><td>Paired video + gated kinematics</td></tr>
+            <tr><td>Clinical auditability</td><td>High (inspectable timeline)</td><td>Low</td><td>Medium–high</td></tr>
+            <tr><td>Quality ceiling</td><td>Capped by the schema</td><td>Potentially higher</td><td>Highest (richest input)</td></tr>
           </tbody>
         </table>
       </div>
-      <div class="callout"><span class="htag">Recommendation</span>Build Architecture A for v1 to reach a validated, auditable product quickly and start accumulating paired data. Treat Architecture B as a Phase-6 research track that becomes viable once paired data exists — the two share the same video encoder, so the investment carries over. A hybrid is natural: use A's structured timeline as grounding context for a VLM, getting the auditability of A with some expressiveness of B.</div>
+      <div class="callout"><span class="htag">Recommendation</span>Build Architecture A for v1 to reach a validated, auditable product quickly and start accumulating paired data. Architecture B becomes viable once paired data exists, and Architecture C is the long-term endpoint that adds kinematics for accuracy and analytics — the three form a progression, not a fork, since all share the same video encoder so the investment carries forward. A hybrid is natural too: use A's structured timeline as grounding context for a VLM, getting the auditability of A with the expressiveness of B or C.</div>
     </section>
 
     <section class="sec" id="risks">
-      <div class="sec-head"><span class="kick">12</span><h2>Key risks</h2></div>
+      <div class="sec-head"><span class="kick">13</span><h2>Key risks</h2></div>
       <ul>
         <li><span class="lbl">Compounding perception errors</span> in Architecture A — mitigated by confidence gating and surgeon review.</li>
         <li><span class="lbl">Hallucinated operative detail</span> — mitigated by event-grounded generation, output constraints, and mandatory sign-off.</li>
@@ -483,12 +525,12 @@ flowchart TD
     </section>
 
     <section class="sec" id="refs">
-      <div class="sec-head"><span class="kick">13</span><h2>Reference appendix</h2></div>
+      <div class="sec-head"><span class="kick">14</span><h2>Reference appendix</h2></div>
       <ul>
         <li><span class="lbl">Surgical video backbones:</span> SurgVISTA, SurgeNetXL, EndoFM, SurgMotion.</li>
         <li><span class="lbl">Surgical VLMs (text output):</span> GP-VLS, Surgical-LVLM, SurgVLM, Halsted.</li>
         <li><span class="lbl">Perception task line:</span> CholecTriplet challenges (action-triplet recognition), EndoVis challenges (segmentation).</li>
-        <li><span class="lbl">Adapter pattern reference:</span> OpenTSLM (time-series modality into a frozen LLM via soft-prompt or Flamingo-style cross-attention) — directly applicable if/when kinematics is added.</li>
+        <li><span class="lbl">Time-series modality / kinematics path:</span> OpenTSLM — integrates time series into a frozen LLM via soft-prompt or Flamingo-style cross-attention; the kinematic encoder in Architecture C.</li>
       </ul>
     </section>
 
